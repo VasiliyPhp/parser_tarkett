@@ -7,9 +7,11 @@
 	require 'vendor/autoload.php';
 	
 	const SITE = 'http://www.tarkett.ru';
+	$prop2 = require 'prop2.php';
 	
+	// p($prop2);
 	$properties = array_filter(array_map('trim', file('properties.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES)));
-	$props = ['Категория','Вторая категория','Третья категория','Четвертая категория','Изображение','Описание','Транслит'];
+	$props = ['Категория','Вторая категория','Третья категория','Четвертая категория','Изображение','Описание','Транслит', 'Транслит категории'];
 	$properties = array_merge($props, $properties);
 	
 	
@@ -24,6 +26,9 @@
 		foreach($doc as $main_cats){
 			$cat1_link = SITE . pq('.picture a', $main_cats)->attr('href');
 			$res['Категория'] = $cat1_name = pq('.title.black', $main_cats)->text();
+			// if($res['Категория'] == 'Art Vinyl'){
+				// continue;
+			// }
 			// p([$cat1_link,$cat1_name]);
 			parse_second_cat($cat1_link, $cat1_name, $res);
 			
@@ -41,7 +46,8 @@
 	}
 	
 	
-	function  parse_second_cat($link, $name1, &$ar){
+	// function  parse_second_cat($link, $name1, &$ar){
+	function  parse_second_cat($link, $name1, $ar){
 		p($link,0);
 		$doc1 = phpquery::newDocument(curl($link));
 		$docs = pq('.CTCOneBrend');
@@ -78,7 +84,8 @@
 		
 	}
 	
-	function parse_cart($href, &$ar){
+	// function parse_cart($href, &$ar){
+	function parse_cart($href, $ar){
 		
 		p($href,0);
 		$doc = phpQuery::newDocument(curl($href));
@@ -114,17 +121,29 @@
 			p($href,0);
 			$doc2 = phpQuery::newDocument(curl($href));
 			$trs = pq('.PCPC tr');
+			$chars = [];
 			foreach($trs as $tr){
-				
 				$char = trim(pq('td:eq(0)', $tr)->text());
-				$val = trim(pq('td:eq(1)', $tr)->text());
+				$val = (trim(pq('td:eq(1)', $tr)->html()));
+				
+				$chars[] = $char;
+				
 				if(array_key_exists($char, $ar)){
 					$ar[$char] = $val;
-					}else{
+				}
+				else{
 					p($char,0);
 				}
 			}
+			
+			// foreach(array_keys($ar) as $_key){
+			// if(!in_array($_key, $chars)){
+			// $ar[$_key] = '';
+			// }
+			// }
+			$ar['Название'] =  preg_replace('~\s+~',' ',trim(pq('.PCtoprightBlock h1')->text()));
 			$ar['Транслит'] = translit($ar['Название']);
+			$ar['Транслит категории'] = translit($ar['Категория']);
 			$image = save_img(SITE . pq('.PCprodPic a')->attr('href'), $ar['Транслит'], 
 			$ar['Категория'], $ar['Вторая категория'], $ar['Третья категория'] );
 			$ar['Изображение'] = $image;
@@ -145,7 +164,7 @@
 	}
 	
 	function save_csv($ar){
-		global $properties;
+		global $properties, $prop2;
 		$path = 'csv' ;
 		file_exists($path) or mkdir($path,null,1);
 		$path .= '/';
@@ -153,9 +172,15 @@
 		$exists = file_exists($csv);
 		$f = fopen($csv, 'a');
 		if(!$exists){
-			fputcsv($f, $properties, ';','"');
+			fputcsv($f, array_keys($prop2), ';','"');
+			// fputcsv($f, ($prop2), ';','"');
 		}
-		fputcsv($f, $ar, ';','"');
+		$result = [];
+		foreach($prop2 as $value){
+			// echo $value;
+			$result[] = isset($ar[$value])? $ar[$value] : '';
+		}
+		fputcsv($f, $result, ';','"');
 	}
 	
 	
@@ -192,7 +217,7 @@
 	}								
 	
 	function translit($str){
-		$str = strtolower($str);
+		$str = preg_replace('~\s+~',' ', mb_strtolower($str));
 		$tr = array(
 		"А"=>"a", "Б"=>"b", "В"=>"v", "Г"=>"g", "Д"=>"d",
 		"Е"=>"e", "Ё"=>"yo", "Ж"=>"zh", "З"=>"z", "И"=>"i", 
@@ -211,4 +236,4 @@
 		":"=>"", ";"=>"","—"=>"", "–"=>"-"
 		);
 		return strtr($str,$tr);
-	}																													
+	}																																				
