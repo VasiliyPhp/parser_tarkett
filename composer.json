@@ -1,0 +1,14 @@
+{
+    "name": "samsung/terkett",
+    "require-dev": {
+        "coderockr/php-query": "dev-master"
+    },
+    "authors": [
+        {
+            "name": "Vasiliy Php",
+            "email": "mister.sergeew-v@yandex.ru"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
